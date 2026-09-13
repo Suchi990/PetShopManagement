@@ -1,0 +1,202 @@
+USE PetShopManagementDB;
+GO
+
+-- ১. Users টেবিল
+CREATE TABLE Users (
+    UserId INT PRIMARY KEY IDENTITY(1,1),
+    Username VARCHAR(50) UNIQUE NOT NULL,
+    Password VARCHAR(255) NOT NULL,
+    FullName VARCHAR(100),
+    UserRole VARCHAR(20) CHECK (UserRole IN ('Admin', 'Customer', 'DeliveryMan')) NOT NULL,
+    Email VARCHAR(100),
+    Phone VARCHAR(20),
+    Address TEXT,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- ২. Categories টেবিল
+CREATE TABLE Categories (
+    CategoryId INT PRIMARY KEY IDENTITY(1,1),
+    CategoryName VARCHAR(50) NOT NULL,
+    Description TEXT
+);
+GO
+
+-- ৩. Products টেবিল
+CREATE TABLE Products (
+    ProductId INT PRIMARY KEY IDENTITY(1,1),
+    ProductName VARCHAR(100) NOT NULL,
+    CategoryId INT FOREIGN KEY REFERENCES Categories(CategoryId),
+    Price DECIMAL(18, 2) NOT NULL,
+    StockQuantity INT NOT NULL,
+    ProductType VARCHAR(50),
+    ImageUrl VARCHAR(MAX)
+);
+GO
+
+-- ৪. Coupons টেবিল
+CREATE TABLE Coupons (
+    CouponId INT PRIMARY KEY IDENTITY(1,1),
+    CouponCode VARCHAR(20) UNIQUE NOT NULL,
+    DiscountPercentage DECIMAL(5, 2) NOT NULL,
+    ExpiryDate DATE,
+    IsActive BIT DEFAULT 1
+);
+GO
+
+-- ৫. Orders টেবিল
+CREATE TABLE Orders (
+    OrderId INT PRIMARY KEY IDENTITY(1,1),
+    CustomerId INT FOREIGN KEY REFERENCES Users(UserId),
+    DeliveryManId INT FOREIGN KEY REFERENCES Users(UserId) NULL,
+    OrderDate DATETIME DEFAULT GETDATE(),
+    TotalAmount DECIMAL(18, 2),
+    CouponId INT FOREIGN KEY REFERENCES Coupons(CouponId) NULL,
+    OrderStatus VARCHAR(20) DEFAULT 'Pending',
+    CashMemoNo AS ('INV-' + CAST(OrderId AS VARCHAR(10)))
+);
+GO
+
+-- ৬. Inventory টেবিল
+CREATE TABLE Inventory (
+    ID INT PRIMARY KEY IDENTITY(1,1),
+    Category NVARCHAR(50) NOT NULL,
+    Breed NVARCHAR(50) NOT NULL,
+    Price DECIMAL(18, 2) NOT NULL,
+    Quantity INT NOT NULL,
+    SellCount INT DEFAULT 0
+);
+GO
+
+-- ৭. Sales টেবিল
+CREATE TABLE Sales (
+    SaleId INT PRIMARY KEY IDENTITY(1,1),
+    CustomerUsername VARCHAR(50) NOT NULL,
+    ProductName VARCHAR(100) NOT NULL,
+    Price DECIMAL(10, 2) NOT NULL,
+    Quantity INT DEFAULT 1,
+    SaleDate DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_UserSales FOREIGN KEY (CustomerUsername) REFERENCES Users(Username)
+);
+GO
+
+-- ৮. OrderDetails টেবিল
+CREATE TABLE OrderDetails (
+    OrderDetailId INT IDENTITY(1,1) PRIMARY KEY,
+    OrderId INT FOREIGN KEY REFERENCES Orders(OrderId),
+    ProductName NVARCHAR(100),
+    Price DECIMAL(18, 2),
+    Quantity INT
+);
+GO
+
+-- ৯. ProductReviews টেবিল
+CREATE TABLE ProductReviews (
+    ReviewId INT IDENTITY(1,1) PRIMARY KEY,
+    Username VARCHAR(50) NOT NULL,
+    ItemName NVARCHAR(50) NOT NULL,
+    Comment NVARCHAR(MAX) NOT NULL,
+    Rating INT DEFAULT 5 CHECK (Rating >= 1 AND Rating <= 5),
+    ReviewDate DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_ReviewUser FOREIGN KEY(Username) REFERENCES Users(Username)
+);
+GO
+
+-- ১০. DeliveryPartners টেবিল
+CREATE TABLE DeliveryPartners (
+    AgentID INT PRIMARY KEY IDENTITY(1,1),
+    AgentName VARCHAR(100) UNIQUE,
+    BusinessEarned DECIMAL(18, 2) DEFAULT 0.00,
+    DeliveryCount INT DEFAULT 0
+);
+GO
+
+
+
+========================================================
+insert=
+========================================================
+
+
+USE PetShopManagementDB;
+GO
+
+-- ১. Users Table (Admin, DeliveryMan & Customers)
+INSERT INTO Users (Username, Password, FullName, Email, Phone, Address, UserRole) 
+VALUES 
+('admin', 'admin', 'md. Ashikur Rahman Mirza', 'admin@petshop.com', '01626318821', 'Dhaka, Bangladesh', 'Admin'),
+('delivery_mama', '1234', 'Pathao Delivery Man', 'dm@pet.com', '01700000000', 'Dhaka, Bangladesh', 'DeliveryMan'),
+('customer1', '123', 'Test Customer', 'cust@mail.com', '01800000000', 'Dhaka, Bangladesh', 'Customer'),
+('jhinku', '1234', 'Jhinku User', 'jhinku@mail.com', '01900000001', 'Dhaka', 'Customer'),
+('ashik', '1234', 'Ashikur Rahman', 'ashik@mail.com', '01900000002', 'Dhaka', 'Customer'),
+('anis', '1234', 'Anisur Rahman', 'anis@mail.com', '01900000003', 'Dhaka', 'Customer'),
+('sumon', '1234', 'Sumon Ahmed', 'sumon@mail.com', '01900000004', 'Dhaka', 'Customer'),
+('emon', '1234', 'Emon Hasan', 'emon@mail.com', '01900000005', 'Dhaka', 'Customer'),
+('apon420', '1234', 'Apon Hossain', 'apon@mail.com', '01900000006', 'Dhaka', 'Customer');
+GO
+
+-- ২. Categories Table
+INSERT INTO Categories (CategoryName, Description) 
+VALUES 
+('Cat', 'Cats and cat food or accessories'),
+('Dog', 'Dogs and dog food or accessories'),
+('Rabbit', 'Rabbits and supplies'),
+('Bird', 'Birds and bird accessories'),
+('Food', 'Pet foods for all animals'),
+('Medicine', 'Healthcare and medicines');
+GO
+
+-- ৩. Products Table
+INSERT INTO Products (ProductName, CategoryId, Price, StockQuantity, ProductType) 
+VALUES 
+('Persian Cat', 1, 1200.00, 10, 'Persian jaat'),
+('Royal Canin 1kg', 5, 850.00, 25, 'Cat Food'),
+('Vaccine', 6, 500.00, 50, 'Antibiotic');
+GO
+
+-- ৪. Inventory Table
+INSERT INTO Inventory (Category, Breed, Price, Quantity, SellCount) 
+VALUES 
+('Cat', 'Persian Cat', 1200.00, 10, 5),
+('Dog', 'German Shepherd', 25000.00, 4, 2),
+('Bird', 'Parrot', 1500.00, 15, 8);
+GO
+
+-- ৫. DeliveryPartners Table
+TRUNCATE TABLE DeliveryPartners;
+INSERT INTO DeliveryPartners (AgentName, BusinessEarned, DeliveryCount) 
+VALUES 
+('Pathao Fast', 10, 1),
+('FoodPanda Go', 10, 1),
+('RedX Logistics', 10, 1),
+('Jhinku BD', 10, 1),
+('Shop Pickup', 10, 1);
+GO
+
+-- ৬. Sales Table
+INSERT INTO Sales (CustomerUsername, ProductName, Price, Quantity) 
+VALUES 
+('jhinku', 'Persian Cat', 1200.00, 1),
+('ashik', 'Royal Canin 1kg', 850.00, 2);
+GO
+
+-- ৭. ProductReviews Table
+INSERT INTO ProductReviews (Username, ItemName, Comment, Rating)
+VALUES 
+('ashik', 'Persian', 'Extremely fluffy and healthy. Very happy!', 5),
+('anis', 'Persian', 'Super fluffy, exactly what I wanted.', 5),
+('sumon', 'Persian', 'Beautiful eyes and very active.', 4),
+('emon', 'Siamese', 'Very vocal and active, loves to play around.', 5),
+('apon420', 'Siamese', 'Very smart and follows me everywhere.', 5),
+('ashik', 'Siamese', 'A bit loud at night, but very sweet.', 4),
+('anis', 'Maine_Coon', 'A big gentle giant, very friendly with kids.', 5),
+('sumon', 'Maine_Coon', 'He is huge! Like a lion but very gentle.', 5),
+('emon', 'Maine_Coon', 'Amazing fur quality, very fluffy.', 4),
+('apon420', 'Bengal', 'Stunning coat pattern, looks like a mini leopard!', 5),
+('ashik', 'German_Shepherd', 'Smartest dog I ever had. Very protective.', 5),
+('anis', 'German_Shepherd', 'Learned commands very quickly, 5 stars!', 5),
+('sumon', 'Bulldog', 'Strong and healthy, loves to sleep.', 4),
+('emon', 'Royal_Canin_1kg', 'Great for kittens, very nutritious.', 5),
+('ashik', 'Vaccine', 'Effective and easy to administer.', 5);
+GO
